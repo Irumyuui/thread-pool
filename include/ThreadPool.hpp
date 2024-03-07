@@ -5,7 +5,9 @@
 #include <future>
 #include <memory>
 #include <thread>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "Channel.hpp"
@@ -72,7 +74,10 @@ auto karus::ThreadPool::SubmitTask(Fn &&fn, Args &&...args)
     -> std::future<decltype(fn(args...))> {
   using RetTy = decltype(fn(args...));
   auto func_ptr = std::make_shared<std::packaged_task<RetTy()>>(
-      [&fn, args...]() -> RetTy { return fn(args...); });
+      [fn = std::forward<Fn>(fn),
+       args = std::forward_as_tuple(args...)]() -> RetTy {
+        return std::apply(fn, args);
+      });
   Task task = [func_ptr] { (*func_ptr)(); };
   this->AddTask(task);
   return func_ptr->get_future();
