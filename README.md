@@ -25,6 +25,12 @@ auto main() -> int {
   std::osyncstream(std::cout)
       << "====================================================" << std::endl;
 
+  // Make Submit Task.
+  // When the task has the return value.
+  auto result = pool.SubmitTask([](int x) { return x + 1; }, 10);
+
+  std::cout << result.get() << '\n'; 
+
   pool.Stop(true);
 }
 ```
