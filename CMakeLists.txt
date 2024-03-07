@@ -11,7 +11,7 @@ add_executable(thread-pool main.cpp)
 
 target_include_directories(thread-pool PUBLIC include)
 
-add_compile_options(-Wall -Wextra -Werror -O2 -pipe)
+add_compile_options(-std=c++20 -Wall -Wextra -Werror -O2 -pipe)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
