@@ -2,7 +2,10 @@
 
 #include <condition_variable>
 #include <functional>
+#include <future>
+#include <memory>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #include "Channel.hpp"
@@ -21,7 +24,16 @@ public:
 
 public:
   auto AddTask(const Task &task) -> void;
+
+  template <typename Fn, typename... Args>
+    requires requires(Fn fn, Args... args) {
+      !std::is_same_v<decltype(fn(args...)), void>;
+    }
+  auto SubmitTask(Fn &&fn, Args &&...args)
+      -> std::future<decltype(fn(args...))>;
+
   auto AddThread(std::size_t thread_count) -> void;
+
   auto Stop(bool exec_remain_tasks = true) -> void;
 
 private:
@@ -50,6 +62,20 @@ karus::ThreadPool::~ThreadPool() { this->Stop(false); }
 auto karus::ThreadPool::AddTask(const Task &task) -> void {
   this->tasks_.Push(task);
   this->thread_cond_.notify_one();
+}
+
+template <typename Fn, typename... Args>
+  requires requires(Fn fn, Args... args) {
+    !std::is_same_v<decltype(fn(args...)), void>;
+  }
+auto karus::ThreadPool::SubmitTask(Fn &&fn, Args &&...args)
+    -> std::future<decltype(fn(args...))> {
+  using RetTy = decltype(fn(args...));
+  auto func_ptr = std::make_shared<std::packaged_task<RetTy()>>(
+      [&fn, args...]() -> RetTy { return fn(args...); });
+  Task task = [func_ptr] { (*func_ptr)(); };
+  this->AddTask(task);
+  return func_ptr->get_future();
 }
 
 auto karus::ThreadPool::ThreadLoop() -> void {

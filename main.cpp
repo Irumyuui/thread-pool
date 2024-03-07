@@ -24,5 +24,9 @@ auto main() -> int {
 
   // pool.AddThread(16);
 
+  auto result = pool.SubmitTask([](int x) { return x + 1; }, 10);
+
+  std::cout << result.get() << '\n'; 
+
   pool.Stop(true);
 }
